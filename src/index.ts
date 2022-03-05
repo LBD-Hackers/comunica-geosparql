@@ -7,9 +7,13 @@ const DF = new DataFactory();
 
 export const geoSPARQLFunctions = {
 
-    // geosf:distance(p1, p2, decimals)
+    // geosf:distance(p1, p2, decimals, multiplicationFactor)
     'http://www.opengis.net/def/function/geosparql/distance'(args: RDF.Term[]) {
+        
+        // Set defaults
         const decimals = args[2] != undefined ? parseFloat(args[2].value) : 8;
+        const mf = args[3] != undefined ? parseFloat(args[3].value) : 1;
+
         if (args[0].termType === 'Literal' && args[1].termType === 'Literal') {
             const p1 = parseWKT(args[0].value);
             const p2 = parseWKT(args[1].value);
@@ -20,14 +24,20 @@ export const geoSPARQLFunctions = {
                 const b = p1.value[1] - p2.value[1];
                 let d: number;
 
+                // XY
                 if(p1.type == geometryType.POINT && p2.type == geometryType.POINT){
-                    d = round(Math.sqrt(a * a + b * b), decimals);
+                    d = Math.sqrt(a * a + b * b);
                 }
 
+                // XYZ
                 if(p1.type == geometryType.POINTZ && p2.type == geometryType.POINTZ){
-                    const c = p1.value[2] - p2.value[2];
-                    d = round(Math.sqrt(a * a + b * b + c * c), decimals);
+                    const c = p1.value[2] - p2.value[2]; // Get z- coordinates
+                    d = Math.sqrt(a * a + b * b + c * c);
                 }
+
+                // Apply multiplication factor and round
+                d = d * mf;
+                d = round(d, decimals);
 
                 return DF.literal(d.toString(), DF.namedNode('http://www.w3.org/2001/XMLSchema#decimal'));
                 
